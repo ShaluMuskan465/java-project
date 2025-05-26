@@ -1,0 +1,24 @@
+package model;
+
+public class Email {
+    private String sender;
+    private String receiver;
+    private String subject;
+    private String body;
+
+    public Email(String sender, String receiver, String subject, String body) {
+        this.sender = sender;
+        this.receiver = receiver;
+        this.subject = subject;
+        this.body = body;
+    }
+
+    public String formatForFile() {
+        return sender + "|" + receiver + "|" + subject + "|" + body.replace("\n", "\\n");
+    }
+
+    public static Email parseFromFile(String line) {
+        String[] parts = line.split("\\|");
+        return new Email(parts[0], parts[1], parts[2], parts[3].replace("\\n", "\n"));
+    }
+}
