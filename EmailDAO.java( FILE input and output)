@@ -1,0 +1,78 @@
+// DAO Class
+class EmailDAO {
+    private static final String FILE_NAME = "emails.txt";
+
+    public EmailDAO() {
+        File file = new File(FILE_NAME);
+        try {
+            if (!file.exists()) file.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Error creating file: " + e.getMessage());
+        }
+    }
+
+    public void saveEmail(Email email) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME, true))) {
+            writer.write(email.formatForFile());
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Error saving email: " + e.getMessage());
+        }
+    }
+
+    public List<Email> getEmailsByUser(String user) {
+        List<Email> list = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Email email = Email.parseFromFile(line);
+                if (email != null && (email.getSender().equalsIgnoreCase(user) || email.getReceiver().equalsIgnoreCase(user))) {
+                    list.add(email);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading emails: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public List<Email> getEmailsReceivedByUser(String receiver) {
+        List<Email> list = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Email email = Email.parseFromFile(line);
+                if (email != null && email.getReceiver().equalsIgnoreCase(receiver)) {
+                    list.add(email);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading receiver inbox: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public void deleteEmail(Email target) {
+        List<Email> all = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Email email = Email.parseFromFile(line);
+                if (email != null && !email.formatForFile().equals(target.formatForFile())) {
+                    all.add(email);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading for delete: " + e.getMessage());
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+            for (Email email : all) {
+                writer.write(email.formatForFile());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error writing after delete: " + e.getMessage());
+        }
+    }
+}
