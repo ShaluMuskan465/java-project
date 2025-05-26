@@ -1,0 +1,60 @@
+public class EmailSystem {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        EmailService service = new EmailService();
+
+        while (true) {
+            System.out.println("\n====== EMAIL SYSTEM ======");
+            System.out.println("1. Send Email");
+            System.out.println("2. View My Emails (Sent + Received)");
+            System.out.println("3. Delete Email");
+            System.out.println("4. Exit");
+            System.out.println("5. View My Inbox (Only Received)");
+            System.out.print("Enter choice: ");
+            int choice = sc.nextInt(); sc.nextLine();
+
+            switch (choice) {
+                case 1:
+                    System.out.print("From   : ");
+                    String sender = sc.nextLine();
+                    System.out.print("To     : ");
+                    String receiver = sc.nextLine();
+                    System.out.print("Subject: ");
+                    String subject = sc.nextLine();
+                    System.out.print("Body   :\n");
+                    String body = sc.nextLine();
+                    service.sendEmail(sender, receiver, subject, body);
+                    break;
+
+                case 2:
+                    System.out.print("Enter your email: ");
+                    String user = sc.nextLine();
+                    service.showEmails(user);
+                    break;
+
+                case 3:
+                    System.out.print("Sender Email : ");
+                    String s = sc.nextLine();
+                    System.out.print("Receiver Email: ");
+                    String r = sc.nextLine();
+                    System.out.print("Subject       : ");
+                    String sub = sc.nextLine();
+                    service.deleteByDetails(s, r, sub);
+                    break;
+
+                case 4:
+                    System.out.println("Exiting Email System. Goodbye!");
+                    return;
+
+                case 5:
+                    System.out.print("Enter your email (receiver): ");
+                    String inboxUser = sc.nextLine();
+                    service.showInbox(inboxUser);
+                    break;
+
+                default:
+                    System.out.println("Invalid option. Try again.");
+            }
+        }
+    }
+}
