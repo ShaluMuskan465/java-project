@@ -1,0 +1,235 @@
+import java.io.*;
+import java.util.*;
+
+// Model Class
+class Email {
+    private String sender;
+    private String receiver;
+    private String subject;
+    private String body;
+
+    public Email(String sender, String receiver, String subject, String body) {
+        this.sender = sender;
+        this.receiver = receiver;
+        this.subject = subject;
+        this.body = body;
+    }
+
+    public String getSender() { return sender; }
+    public String getReceiver() { return receiver; }
+    public String getSubject() { return subject; }
+    public String getBody() { return body; }
+
+    public String formatForFile() {
+        return sender + "|" + receiver + "|" + subject + "|" + body.replace("\n", "\\n");
+    }
+
+    public static Email parseFromFile(String line) {
+        String[] parts = line.split("\\|");
+        if (parts.length < 4) return null;
+        return new Email(parts[0], parts[1], parts[2], parts[3].replace("\\n", "\n"));
+    }
+}
+
+// DAO Class
+class EmailDAO {
+    private static final String FILE_NAME = "emails.txt";
+
+    public EmailDAO() {
+        File file = new File(FILE_NAME);
+        try {
+            if (!file.exists()) file.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Error creating file: " + e.getMessage());
+        }
+    }
+
+    public void saveEmail(Email email) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME, true))) {
+            writer.write(email.formatForFile());
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Error saving email: " + e.getMessage());
+        }
+    }
+
+    public List<Email> getEmailsByUser(String user) {
+        List<Email> list = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Email email = Email.parseFromFile(line);
+                if (email != null && (email.getSender().equalsIgnoreCase(user) || email.getReceiver().equalsIgnoreCase(user))) {
+                    list.add(email);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading emails: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public List<Email> getEmailsReceivedByUser(String receiver) {
+        List<Email> list = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Email email = Email.parseFromFile(line);
+                if (email != null && email.getReceiver().equalsIgnoreCase(receiver)) {
+                    list.add(email);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading receiver inbox: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public void deleteEmail(Email target) {
+        List<Email> all = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Email email = Email.parseFromFile(line);
+                if (email != null && !email.formatForFile().equals(target.formatForFile())) {
+                    all.add(email);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading for delete: " + e.getMessage());
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+            for (Email email : all) {
+                writer.write(email.formatForFile());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error writing after delete: " + e.getMessage());
+        }
+    }
+}
+
+// Service Class
+class EmailService {
+    private EmailDAO dao = new EmailDAO();
+
+    public void sendEmail(String sender, String receiver, String subject, String body) {
+        if (sender.isEmpty() || receiver.isEmpty() || subject.isEmpty()) {
+            System.out.println("Sender, receiver, and subject cannot be empty.");
+            return;
+        }
+        if (!sender.contains("@") || !receiver.contains("@")) {
+            System.out.println("Invalid email format.");
+            return;
+        }
+        Email email = new Email(sender, receiver, subject, body);
+        dao.saveEmail(email);
+        System.out.println("Email sent successfully.");
+    }
+
+    public void showEmails(String user) {
+        List<Email> list = dao.getEmailsByUser(user);
+        if (list.isEmpty()) {
+            System.out.println("No emails found.");
+        } else {
+            for (Email email : list) {
+                System.out.println("\n-----------------------------");
+                System.out.println("From   : " + email.getSender());
+                System.out.println("To     : " + email.getReceiver());
+                System.out.println("Subject: " + email.getSubject());
+                System.out.println("Body   : \n" + email.getBody());
+            }
+        }
+    }
+
+    public void showInbox(String receiver) {
+        List<Email> list = dao.getEmailsReceivedByUser(receiver);
+        if (list.isEmpty()) {
+            System.out.println("Inbox is empty.");
+        } else {
+            for (Email email : list) {
+                System.out.println("\n-----------------------------");
+                System.out.println("From   : " + email.getSender());
+                System.out.println("Subject: " + email.getSubject());
+                System.out.println("Body   : \n" + email.getBody());
+            }
+        }
+    }
+
+    public void deleteByDetails(String sender, String receiver, String subject) {
+        List<Email> list = dao.getEmailsByUser(sender);
+        for (Email email : list) {
+            if (email.getSender().equalsIgnoreCase(sender) &&
+                email.getReceiver().equalsIgnoreCase(receiver) &&
+                email.getSubject().equalsIgnoreCase(subject)) {
+                dao.deleteEmail(email);
+                System.out.println("Email deleted.");
+                return;
+            }
+        }
+        System.out.println("Email not found.");
+    }
+}
+
+// Main Class
+public class EmailSystem {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        EmailService service = new EmailService();
+
+        while (true) {
+            System.out.println("\n====== EMAIL SYSTEM ======");
+            System.out.println("1. Send Email");
+            System.out.println("2. View My Emails (Sent + Received)");
+            System.out.println("3. Delete Email");
+            System.out.println("4. Exit");
+            System.out.println("5. View My Inbox (Only Received)");
+            System.out.print("Enter choice: ");
+            int choice = sc.nextInt(); sc.nextLine();
+
+            switch (choice) {
+                case 1:
+                    System.out.print("From   : ");
+                    String sender = sc.nextLine();
+                    System.out.print("To     : ");
+                    String receiver = sc.nextLine();
+                    System.out.print("Subject: ");
+                    String subject = sc.nextLine();
+                    System.out.print("Body   :\n");
+                    String body = sc.nextLine();
+                    service.sendEmail(sender, receiver, subject, body);
+                    break;
+
+                case 2:
+                    System.out.print("Enter your email: ");
+                    String user = sc.nextLine();
+                    service.showEmails(user);
+                    break;
+
+                case 3:
+                    System.out.print("Sender Email : ");
+                    String s = sc.nextLine();
+                    System.out.print("Receiver Email: ");
+                    String r = sc.nextLine();
+                    System.out.print("Subject       : ");
+                    String sub = sc.nextLine();
+                    service.deleteByDetails(s, r, sub);
+                    break;
+
+                case 4:
+                    System.out.println("Exiting Email System. Goodbye!");
+                    return;
+
+                case 5:
+                    System.out.print("Enter your email (receiver): ");
+                    String inboxUser = sc.nextLine();
+                    service.showInbox(inboxUser);
+                    break;
+
+                default:
+                    System.out.println("Invalid option. Try again.");
+            }
+        }
+    }
+}
